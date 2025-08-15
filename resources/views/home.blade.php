@@ -5,6 +5,16 @@
     <h1 class="text-3xl font-bold mb-6 text-center text-gray-800">💬 AI Chat</h1>
 
     <div class="bg-white shadow-lg rounded-xl p-6">
+        
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold text-gray-700">Conversation</h2>
+            <button 
+                id="clear-chat" 
+                class="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-2 rounded-lg transition">
+                Clear Chat
+            </button>
+        </div>
+
         <div id="chat-history" class="mb-4 space-y-4 max-h-[400px] overflow-y-auto">
         </div>
 
@@ -28,7 +38,6 @@
 </div>
 
 <script>
-    
     function loadHistory() {
         let chat = JSON.parse(localStorage.getItem('chat') || '[]');
         $('#chat-history').html('');
@@ -52,16 +61,17 @@
         $('#question').val('');
 
         let chat = JSON.parse(localStorage.getItem('chat') || '[]');
+        chat.push({ question: question, answer: null });
 
         $.ajax({
             url: "{{ route('ask.ai') }}",
             type: "POST",
             data: {
                 _token: "{{ csrf_token() }}",
-                question: question
+                chat: chat
             },
             success: function(response) {
-                chat.push({ question: question, answer: response.answer });
+                chat[chat.length - 1].answer = response.answer;
                 localStorage.setItem('chat', JSON.stringify(chat));
                 loadHistory();
             },
@@ -69,6 +79,13 @@
                 alert('Error: Could not get AI response.');
             }
         });
+    });
+
+    $('#clear-chat').on('click', function() {
+        if (confirm('Are you sure you want to clear the chat history?')) {
+            localStorage.removeItem('chat');
+            loadHistory();
+        }
     });
 
     loadHistory();

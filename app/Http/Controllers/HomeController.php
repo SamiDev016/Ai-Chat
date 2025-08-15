@@ -12,64 +12,35 @@ class HomeController extends Controller
         return view('home');
     }
 
-//     public function askAI(Request $request)
-// {
-//     $request->validate([
-//         'question' => 'required',
-//     ]);
-
-//     $apiKey = env('OPENAI_API_KEY'); // Your Gemini API key
-
-//     $body = [
-//         'contents' => [
-//             [
-//                 'parts' => [
-//                     [
-//                         'text' => $request->question
-//                     ]
-//                 ]
-//             ]
-//         ]
-//     ];
-
-//     $response = Http::withOptions([
-//         'verify' => false, // Disable SSL verification
-//     ])
-//     ->withHeaders([
-//         'Content-Type' => 'application/json',
-//         'X-goog-api-key' => $apiKey,
-//     ])->post(
-//         'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
-//         $body
-//     );
-
-//     if ($response->failed()) {
-//         return back()->with('error', 'Something went wrong with AI request.');
-//     }
-
-//     $data = $response->json();
-//     $answer = $data['candidates'][0]['content']['parts'][0]['text'] ?? 'No answer received.';
-
-//     return back()->with('answer', $answer)->withInput();
-// }
-
-
-public function askAI(Request $request)
+    public function askAI(Request $request)
 {
     $request->validate([
-        'question' => 'required',
+        'chat' => 'required|array',
     ]);
 
     $apiKey = env('OPENAI_API_KEY');
 
-    $body = [
-        'contents' => [
-            [
-                'parts' => [
-                    ['text' => $request->question]
-                ]
+    $contents = [];
+
+    foreach ($request->chat as $message) {
+        $contents[] = [
+            'role' => 'user',
+            'parts' => [
+                ['text' => $message['question']]
             ]
-        ]
+        ];
+        if (!empty($message['answer'])) {
+            $contents[] = [
+                'role' => 'model',
+                'parts' => [
+                    ['text' => $message['answer']]
+                ]
+            ];
+        }
+    }
+
+    $body = [
+        'contents' => $contents
     ];
 
     $response = Http::withOptions([
@@ -83,7 +54,10 @@ public function askAI(Request $request)
     );
 
     if ($response->failed()) {
-        return response()->json(['error' => 'Something went wrong'], 500);
+        return response()->json([
+            'error' => 'Something went wrong',
+            'details' => $response->json()
+        ], 500);
     }
 
     $data = $response->json();
@@ -91,5 +65,7 @@ public function askAI(Request $request)
 
     return response()->json(['answer' => $answer]);
 }
+
+    
 
 }
